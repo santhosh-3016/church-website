@@ -1,0 +1,418 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 222 68% 14%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 199 89% 48%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 222 68% 14%;
+    --radius: 0.75rem;
+
+    /* City Harvest Theme Colors */
+    --church-blue-deep: 222 68% 14%;
+    --church-blue-medium: 221 53% 25%;
+    --church-blue-light: 210 40% 96%;
+    --church-gold: 45 95% 55%;
+    --church-gold-muted: 45 60% 80%;
+    --church-cream: 210 40% 98%;
+    --church-accent: 199 89% 48%;
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 222 68% 14%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 20% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 222 68% 14%;
+
+    /* City Harvest Shadows */
+    --shadow-soft: 0 4px 20px -2px rgba(11, 27, 61, 0.06);
+    --shadow-card: 0 10px 30px -4px rgba(11, 27, 61, 0.08);
+    --shadow-elevated: 0 20px 40px -8px rgba(11, 27, 61, 0.14);
+    --shadow-glow: 0 0 30px rgba(14, 165, 233, 0.3);
+  }
+
+  .dark {
+    --background: 220 100% 8%;
+    --foreground: 220 20% 95%;
+    --card: 220 35% 12%;
+    --card-foreground: 220 20% 95%;
+    --popover: 220 35% 12%;
+    --popover-foreground: 220 20% 95%;
+    --primary: 200 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 40% 20%;
+    --secondary-foreground: 220 20% 95%;
+    --muted: 220 30% 18%;
+    --muted-foreground: 220 15% 65%;
+    --accent: 45 95% 60%;
+    --accent-foreground: 220 100% 13%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 220 20% 95%;
+    --border: 220 30% 22%;
+    --input: 220 30% 22%;
+    --ring: 200 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(220 60% 98%) 100%);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  .church-section {
+    @apply py-20 md:py-28 relative overflow-hidden;
+  }
+
+  .church-container {
+    @apply container mx-auto px-4 md:px-6 relative z-10;
+  }
+
+  .church-heading {
+    @apply text-4xl md:text-5xl lg:text-6xl font-bold;
+    @apply font-heading;
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--church-accent)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .church-subheading {
+    @apply text-xl md:text-2xl text-muted-foreground font-light;
+  }
+
+  .church-card {
+    @apply bg-white/80 backdrop-blur-xl rounded-2xl p-8 transition-all duration-500 ease-out border border-white/50;
+    box-shadow: var(--shadow-card);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+  }
+
+  .church-card:hover {
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .church-card-vibrant {
+    @apply rounded-2xl p-8 relative overflow-hidden transition-all duration-500 ease-out;
+    box-shadow: var(--shadow-card);
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--church-accent)) 100%);
+  }
+
+  .church-card-vibrant:hover {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .gold-accent {
+    color: hsl(var(--church-gold));
+  }
+
+  .glass-card {
+    @apply backdrop-blur-2xl bg-white/10 border border-white/20 rounded-2xl;
+    box-shadow: var(--shadow-elevated);
+  }
+
+  /* Page hero banner for inner pages */
+  .page-hero {
+    @apply relative py-24 md:py-32 overflow-hidden;
+  }
+
+  .page-hero::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: linear-gradient(to top, hsl(220 30% 96%), transparent);
+    pointer-events: none;
+  }
+}
+
+@layer utilities {
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 3s linear infinite;
+  }
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-40px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(40px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideDownFade {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pulseGlow {
+
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.5);
+    }
+
+    50% {
+      box-shadow: 0 0 20px 8px rgba(37, 211, 102, 0.25);
+    }
+  }
+
+  @keyframes playPulse {
+
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.6;
+    }
+
+    50% {
+      transform: scale(1.5);
+      opacity: 0;
+    }
+  }
+
+  /* Scroll reveal system */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  }
+
+  .reveal.from-left {
+    transform: translateX(-40px);
+  }
+
+  .reveal.from-right {
+    transform: translateX(40px);
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+
+  /* Stagger delays for children */
+  .stagger-1 {
+    transition-delay: 100ms;
+  }
+
+  .stagger-2 {
+    transition-delay: 200ms;
+  }
+
+  .stagger-3 {
+    transition-delay: 300ms;
+  }
+
+  .stagger-4 {
+    transition-delay: 400ms;
+  }
+
+  .stagger-5 {
+    transition-delay: 500ms;
+  }
+
+  /* Dropdown animation */
+  .nav-dropdown {
+    animation: slideDownFade 200ms ease forwards;
+    transform-origin: top;
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--church-accent)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-border {
+    position: relative;
+  }
+
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 2px;
+    background: linear-gradient(135deg, hsl(var(--church-gold)) 0%, hsl(var(--primary)) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  /* CTA underline-grow hover */
+  .cta-underline {
+    position: relative;
+    display: inline-block;
+  }
+
+  .cta-underline::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, hsl(var(--church-gold)), hsl(var(--church-accent)));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease-out;
+  }
+
+  .cta-underline:hover::after {
+    transform: scaleX(1);
+  }
+
+  /* WhatsApp floating button */
+  .whatsapp-float {
+    animation: pulseGlow 2.5s ease-in-out infinite;
+  }
+
+  /* Play button pulse ring */
+  .play-pulse-ring {
+    animation: playPulse 2s ease-out infinite;
+  }
+
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+
+    .reveal {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
