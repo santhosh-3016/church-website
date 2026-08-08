@@ -178,17 +178,28 @@ const HeroSection = () => {
                 </div>
             </div>
 
-            {/* Pleasant Soft Sky-Blue Sub-Banner Bar */}
-            <div className="bg-gradient-to-r from-sky-50 via-blue-50/80 to-sky-50 border-y border-sky-100 py-5 md:py-6">
-                <div className="container mx-auto px-4 text-center">
+            {/* Sub-Banner Bar with Faded Church Building Photo Overlay */}
+            <div className="relative py-8 md:py-12 overflow-hidden border-t border-slate-200/60">
+                {/* Church Building Background Image with Gradient Fade */}
+                <div className="absolute inset-0 -z-0">
+                    <img
+                        src="/about-header-bg.jpg"
+                        alt="Church Building Background"
+                        className="w-full h-full object-cover object-top opacity-35 mix-blend-multiply filter contrast-125 brightness-105"
+                    />
+                    {/* Soft Misty White Gradient Overlay (Top and Bottom Fade) */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-[#F8FAFC] via-white/60 to-[#F8FAFC]"></div>
+                </div>
+
+                <div className="container mx-auto px-4 text-center relative z-10">
                     <p className="text-lg sm:text-xl md:text-2xl font-bold text-[#0B1B3D] tracking-tight">
                         There’s more than one way to belong at{" "}
                         <span className="text-sky-600 font-extrabold">Power Of Praise Church.</span>
                     </p>
                     <div className="flex justify-center gap-2 mt-3">
                         <span className="w-2.5 h-2.5 rounded-full bg-sky-600"></span>
-                        <span className="w-2.5 h-2.5 rounded-full bg-sky-200"></span>
-                        <span className="w-2.5 h-2.5 rounded-full bg-sky-200"></span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-sky-300"></span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-sky-300"></span>
                     </div>
                 </div>
             </div>
