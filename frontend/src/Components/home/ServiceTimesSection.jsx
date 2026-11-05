@@ -7,10 +7,10 @@ const campusCards = [
         icon: MapPin,
         title: "MAIN SANCTUARY",
         subtitle: "Sunday Worship Services",
-        description: "Welcome to Power Of Praise A.G. Church Main Sanctuary. Join our vibrant Sunday Worship Services with Holy Communion on 2nd Sundays.",
+        description: "Welcome to Power Of Praise A.G. Church Main Sanctuary. Join our vibrant Sunday Worship Services with Holy Communion on 1st Sundays.",
         timings: [
-            { label: "1st English Service", time: "6:00 AM – 8:00 AM" },
-            { label: "Main Tamil Service", time: "8:30 AM – 10:30 AM" },
+            { label: "1st Service", time: "6:00 AM – 8:00 AM" },
+            { label: "2nd Service", time: "8:30 AM – 10:30 AM" },
             { label: "Evening Worship", time: "6:30 PM – 8:30 PM" },
         ],
         btnText: "Location & Directions",
@@ -37,8 +37,8 @@ const campusCards = [
         subtitle: "Youth, Kids & Families",
         description: "Building strong faith foundations for children, youth, and small cottage prayer cells in local neighborhoods.",
         timings: [
-            { label: "Youth Meeting", time: "Saturday: 5:00 PM" },
-            { label: "Kids Bible Club", time: "Sunday: 8:30 AM" },
+            { label: "Youth Meeting", time: "Tuesday: 6:00 PM" },
+            { label: "Kids Bible Club", time: "Sunday: 7:00 AM" },
             { label: "Online Zoom Prayer", time: "Mon, Wed, Fri: 9:00 PM" },
         ],
         btnText: "Youth & Care Cells",
@@ -51,7 +51,7 @@ const campusCards = [
         subtitle: "Watch Online Anywhere",
         description: "Never miss a Sunday Worship Service. Join our online livestream every Sunday from wherever you are around the globe.",
         timings: [
-            { label: "Live Service Broadcast", time: "Every Sunday at 8:30 AM" },
+            { label: "Live Service Broadcast", time: "Every Sunday at 6:00 AM,8:30 AM" },
             { label: "Special Zoom Meetings", time: "Mon, Wed, Fri at 9:00 PM" },
         ],
         btnText: "Latest Live Stream",

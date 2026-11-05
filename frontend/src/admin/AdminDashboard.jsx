@@ -49,12 +49,94 @@ const AdminDashboard = () => {
   const [donationCategoryFilter, setDonationCategoryFilter] = useState("All");
   const [donationSearchTerm, setDonationSearchTerm] = useState("");
 
+  // Live Stream State
+  const [liveStreamSettings, setLiveStreamSettings] = useState({
+    is_live: false,
+    video_url: "",
+    stream_title: "Sunday Morning Divine Worship Service",
+    stream_description: "Join us live for praise, worship, and the Word of God.",
+    video_id: null,
+    embed_url: null
+  });
+  const [liveStreamMsg, setLiveStreamMsg] = useState("");
+  const [liveStreamSaving, setLiveStreamSaving] = useState(false);
+
   useEffect(() => {
     fetchSermons();
     fetchAppointments();
     fetchMembers();
     fetchDonations();
+    fetchLiveStream();
   }, []);
+
+  const fetchLiveStream = async () => {
+    try {
+      const res = await fetch("/api/livestream");
+      const data = await res.json();
+      if (data.success) {
+        setLiveStreamSettings(data);
+      }
+    } catch (err) {
+      console.error("Failed to load live stream settings");
+    }
+  };
+
+  const handleSaveLiveStream = async (overrideIsLive) => {
+    setLiveStreamSaving(true);
+    setLiveStreamMsg("");
+    try {
+      const targetLive = overrideIsLive !== undefined ? overrideIsLive : liveStreamSettings.is_live;
+      const payload = {
+        is_live: targetLive,
+        video_url: liveStreamSettings.video_url,
+        stream_title: liveStreamSettings.stream_title,
+        stream_description: liveStreamSettings.stream_description
+      };
+
+      const res = await fetch("/api/livestream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setLiveStreamSettings(data.settings);
+        setLiveStreamMsg(data.message);
+      } else {
+        setLiveStreamMsg(data.message || "Failed to update live stream");
+      }
+    } catch (err) {
+      setLiveStreamMsg("Error saving live stream settings");
+    } finally {
+      setLiveStreamSaving(false);
+    }
+  };
+
+  const handleArchiveLiveStreamToSermons = async () => {
+    if (!liveStreamSettings.video_url || !liveStreamSettings.stream_title) {
+      alert("Please ensure Video URL and Title are filled before saving to Sermons.");
+      return;
+    }
+    try {
+      const payload = {
+        title: liveStreamSettings.stream_title,
+        preacher: "Pastor / Speaker",
+        videoUrl: liveStreamSettings.video_url,
+        thumbnail: liveStreamSettings.video_id ? `https://img.youtube.com/vi/${liveStreamSettings.video_id}/hqdefault.jpg` : ""
+      };
+      const res = await fetch("/api/sermons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      fetchSermons();
+      alert("✅ Live stream has been saved to Sermons library successfully!");
+    } catch (err) {
+      alert("Failed to archive sermon");
+    }
+  };
+
 
   const fetchDonations = async () => {
     try {
@@ -185,14 +267,20 @@ const AdminDashboard = () => {
   };
 
   /* --- APPOINTMENT HANDLERS --- */
-  const handleAppointmentStatus = async (id, status) => {
+  const handleAppointmentStatus = async (id, status, admin_response = "") => {
     try {
-      await fetch(`/api/appointments/${id}/status`, {
+      const res = await fetch(`/api/appointments/${id}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status, admin_response })
       });
+      const data = await res.json();
       fetchAppointments();
+      
+      if (data.whatsapp_link) {
+        // Open WhatsApp Web/App pre-filled with the status update message
+        window.open(data.whatsapp_link, "_blank");
+      }
     } catch (err) {
       alert("Status update failed");
     }
@@ -329,7 +417,15 @@ const AdminDashboard = () => {
         >
           Offerings & Tithes
         </button>
+        <button
+          className={`pb-2 px-4 font-bold flex items-center gap-1.5 ${activeTab === 'livestream' ? 'text-rose-600 border-b-2 border-rose-600' : 'text-gray-500'}`}
+          onClick={() => setActiveTab('livestream')}
+        >
+          <span className={`w-2.5 h-2.5 rounded-full ${liveStreamSettings.is_live ? 'bg-rose-600 animate-ping' : 'bg-slate-400'}`} />
+          Live Stream Control
+        </button>
       </div>
+
 
       {activeTab === 'sermons' ? (
         <div className="grid lg:grid-cols-3 gap-8">
@@ -448,55 +544,94 @@ const AdminDashboard = () => {
             <div className="grid gap-4">
               {appointments.map((apt) => (
                 <Card key={apt.id} className="p-6 border-none shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex flex-col md:flex-row justify-between gap-4">
-                    <div>
+                  <div className="flex flex-col md:flex-row justify-between gap-6">
+                    <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${apt.status === 'approved' ? 'bg-green-100 text-green-700' :
-                          apt.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                            apt.status === 'reschedule' ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-blue-100 text-blue-700'
-                          }`}>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase ${
+                          apt.status === 'approved' ? 'bg-green-100 text-green-700 border border-green-200' :
+                          apt.status === 'rejected' ? 'bg-red-100 text-red-700 border border-red-200' :
+                          apt.status === 'reschedule' ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
+                          'bg-sky-100 text-sky-700 border border-sky-200'
+                        }`}>
                           {apt.status}
                         </span>
-                        <span className="text-gray-400 text-sm">{apt.created_at?.substring(0, 10)}</span>
+                        <span className="text-gray-400 text-xs">{apt.created_at?.substring(0, 10)}</span>
                       </div>
 
                       <h3 className="font-bold text-lg text-church-blue">{apt.topic}</h3>
                       <p className="text-gray-600 mt-1">
-                        <span className="font-semibold text-church-gold">{apt.day} @ {apt.slot}</span>
+                        <span className="font-semibold text-sky-700">{apt.day} @ {apt.slot}</span>
                       </p>
 
-                      <div className="mt-3 text-sm space-y-1">
+                      <div className="mt-3 text-sm space-y-1.5 bg-slate-50 p-3 rounded-lg border border-slate-100">
                         <p><strong>Name:</strong> {apt.name}</p>
-                        <p><strong>Phone:</strong> {apt.phone}</p>
-                        <p><strong>Email:</strong> {apt.email || 'N/A'}</p>
-                        {apt.message && <p className="mt-2 text-gray-500 italic">"{apt.message}"</p>}
+                        <p><strong>Phone:</strong> <a href={`tel:${apt.phone}`} className="text-sky-600 hover:underline">{apt.phone}</a></p>
+                        <p><strong>Email:</strong> {apt.email || <span className="text-gray-400 font-normal">Not provided</span>}</p>
+                        {apt.message && <p className="mt-1 text-slate-600 italic">"Client Note: {apt.message}"</p>}
+                        {apt.admin_response && (
+                          <p className="mt-2 text-emerald-800 font-medium bg-emerald-50 p-2 rounded border border-emerald-200 text-xs">
+                            💬 <strong>Pastor's Note:</strong> "{apt.admin_response}"
+                          </p>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex flex-row md:flex-col gap-2 justify-center border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-4">
-                      {apt.status === 'pending' && (
-                        <>
-                          <button
-                            onClick={() => handleAppointmentStatus(apt.id, 'approved')}
-                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium"
+                    <div className="flex flex-col gap-2 justify-center border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6 min-w-[200px]">
+                      <div className="mb-1">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Pastor's Response Note</label>
+                        <input
+                          type="text"
+                          id={`note-${apt.id}`}
+                          placeholder="e.g. Approved for Room 2 / Call office"
+                          defaultValue={apt.admin_response || ''}
+                          className="w-full text-xs px-2.5 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-sky-500"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        {apt.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                const note = document.getElementById(`note-${apt.id}`)?.value || '';
+                                handleAppointmentStatus(apt.id, 'approved', note);
+                              }}
+                              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold transition-all shadow-sm"
+                            >
+                              ✅ Approve & Notify
+                            </button>
+                            <button
+                              onClick={() => {
+                                const note = document.getElementById(`note-${apt.id}`)?.value || '';
+                                handleAppointmentStatus(apt.id, 'rejected', note);
+                              }}
+                              className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-bold transition-all shadow-sm"
+                            >
+                              ❌ Reject Request
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => {
+                            const note = document.getElementById(`note-${apt.id}`)?.value || '';
+                            handleAppointmentStatus(apt.id, 'reschedule', note);
+                          }}
+                          className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded text-xs font-bold transition-all shadow-sm"
+                        >
+                          🔄 Reschedule
+                        </button>
+
+                        {apt.whatsapp_link && (
+                          <a
+                            href={apt.whatsapp_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded text-xs font-bold transition-all shadow-sm text-center flex items-center justify-center gap-1.5 mt-1"
                           >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => handleAppointmentStatus(apt.id, 'rejected')}
-                            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium"
-                          >
-                            Reject
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={() => handleAppointmentStatus(apt.id, 'reschedule')}
-                        className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-sm font-medium"
-                      >
-                        Reschedule
-                      </button>
+                            💬 Send via WhatsApp
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -852,7 +987,153 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
+      ) : activeTab === 'livestream' ? (
+        <div className="max-w-4xl mx-auto space-y-8">
+          {/* Main Control Panel Card */}
+          <Card className="p-6 md:p-8 bg-white border border-slate-200 rounded-2xl shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-100">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                  <span className="text-xl">📹</span> YouTube Live Stream Control
+                </h2>
+                <p className="text-slate-500 text-sm mt-1">
+                  Manage live stream broadcasts on your website in real-time.
+                </p>
+              </div>
+
+              {/* Instant Toggle Button */}
+              <div className="flex items-center gap-3">
+                <span className={`text-xs font-black uppercase px-3 py-1 rounded-full ${
+                  liveStreamSettings.is_live
+                    ? "bg-rose-100 text-rose-700 border border-rose-200 animate-pulse"
+                    : "bg-slate-100 text-slate-600 border border-slate-200"
+                }`}>
+                  {liveStreamSettings.is_live ? "🔴 CURRENTLY LIVE" : "⚪ OFFLINE"}
+                </span>
+
+                <Button
+                  onClick={() => handleSaveLiveStream(!liveStreamSettings.is_live)}
+                  disabled={liveStreamSaving}
+                  className={`px-6 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all ${
+                    liveStreamSettings.is_live
+                      ? "bg-slate-900 hover:bg-slate-800 text-white"
+                      : "bg-rose-600 hover:bg-rose-700 text-white"
+                  }`}
+                >
+                  {liveStreamSaving
+                    ? "Updating..."
+                    : liveStreamSettings.is_live
+                    ? "⏹ END LIVE BROADCAST"
+                    : "🔴 GO LIVE NOW"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Notification message */}
+            {liveStreamMsg && (
+              <div className={`mt-4 p-4 rounded-xl text-sm font-semibold flex items-center gap-2 ${
+                liveStreamMsg.includes("LIVE NOW") || liveStreamMsg.includes("successfully")
+                  ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                  : "bg-slate-100 text-slate-800 border border-slate-200"
+              }`}>
+                <span>ℹ️</span> {liveStreamMsg}
+              </div>
+            )}
+
+            {/* Form Fields */}
+            <div className="space-y-5 mt-6">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  YouTube Live Stream Video URL / Link
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. https://www.youtube.com/watch?v=VIDEO_ID or https://youtu.be/VIDEO_ID"
+                  value={liveStreamSettings.video_url || ""}
+                  onChange={(e) => setLiveStreamSettings({ ...liveStreamSettings, video_url: e.target.value })}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                />
+                <p className="text-xs text-slate-400 mt-1">
+                  Paste any YouTube live video URL or Video ID. The system automatically parses the video player embed format.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Live Stream Title
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Sunday Morning Worship & Divine Word"
+                  value={liveStreamSettings.stream_title || ""}
+                  onChange={(e) => setLiveStreamSettings({ ...liveStreamSettings, stream_title: e.target.value })}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Stream Description / Notice
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Welcome to today's live service..."
+                  value={liveStreamSettings.stream_description || ""}
+                  onChange={(e) => setLiveStreamSettings({ ...liveStreamSettings, stream_description: e.target.value })}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                />
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-slate-100">
+                <Button
+                  onClick={() => handleSaveLiveStream()}
+                  disabled={liveStreamSaving}
+                  className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm"
+                >
+                  Save Settings
+                </Button>
+
+                <Button
+                  onClick={handleArchiveLiveStreamToSermons}
+                  variant="outline"
+                  className="border-slate-300 text-slate-700 hover:bg-slate-50 font-bold px-5 py-2.5 rounded-xl text-sm"
+                >
+                  📥 Archive Stream to Sermons Library
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          {/* Admin Embedded Preview Card */}
+          {liveStreamSettings.video_url && (
+            <Card className="p-6 bg-slate-900 text-white rounded-2xl shadow-lg border border-slate-800">
+              <h3 className="text-lg font-bold mb-3 text-slate-200 flex items-center gap-2">
+                <span>👁️</span> Live Video Stream Preview (Admin View)
+              </h3>
+              <p className="text-xs text-slate-400 mb-4">
+                This is how the video player will render on the main website home page when broadcasting live.
+              </p>
+              
+              <div className="aspect-video w-full rounded-xl overflow-hidden bg-black border border-slate-800">
+                {liveStreamSettings.video_id ? (
+                  <iframe
+                    src={`https://www.youtube.com/embed/${liveStreamSettings.video_id}?autoplay=0`}
+                    title="Live Stream Preview"
+                    className="w-full h-full border-0"
+                    allowFullScreen
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-500 text-sm">
+                    Enter a valid YouTube URL to see player preview
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+        </div>
       ) : null}
+
     </div>
   );
 };

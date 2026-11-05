@@ -10,9 +10,9 @@ app.get("/", (req, res) => {
   res.send("Pentecostal Church Backend Running");
 });
 
-const PORT = 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT} (Listening on 0.0.0.0 for all network interfaces)`);
 });
 const adminRoutes = require("./routes/adminRoutes");
 app.use("/api/admin", adminRoutes);
@@ -28,5 +28,9 @@ app.use("/api/members", membersRoutes);
 
 const donationsRoutes = require("./routes/donationsRoutes");
 app.use("/api/donations", donationsRoutes);
+
+const livestreamRoutes = require("./routes/livestreamRoutes");
+app.use("/api/livestream", livestreamRoutes);
+
 
 

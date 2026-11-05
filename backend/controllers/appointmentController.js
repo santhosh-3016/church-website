@@ -1,10 +1,12 @@
 const db = require('../models/db');
 const emailService = require('../services/emailService');
+const whatsappService = require('../services/whatsappService');
+const ipHelper = require('../services/ipHelper');
 
 // Create new appointment
 exports.createAppointment = (req, res) => {
     const { name, phone, email, topic, message, day, slot } = req.body;
-    console.log(`[DEBUG] Received appointment request. Email: '${email}'`);
+    console.log(`[DEBUG] Received appointment request. Name: '${name}', Email: '${email}', Phone: '${phone}'`);
 
     // Basic validation
     if (!name || !phone || !topic || !day || !slot) {
@@ -35,9 +37,18 @@ exports.createAppointment = (req, res) => {
             emailService.sendAdminNotification({
                 id: result.insertId,
                 name, phone, email, topic, message, day, slot
-            });
+            }, req);
 
-            res.status(201).json({ message: "Appointment request submitted successfully", id: result.insertId });
+            // Generate WhatsApp message with Quick Action Links for church admin/pastor using local IP for mobile access
+            const baseUrl = ipHelper.getBaseUrl(req);
+            const adminWaMsg = whatsappService.buildAdminActionMessage(result.insertId, name, phone, topic, day, slot, message, baseUrl);
+            const adminWaLink = whatsappService.generateWhatsAppLink("919025937253", adminWaMsg);
+
+            res.status(201).json({
+                message: "Appointment request submitted successfully",
+                id: result.insertId,
+                whatsapp_admin_link: adminWaLink
+            });
         });
     });
 };
@@ -47,7 +58,17 @@ exports.getAllAppointments = (req, res) => {
     const query = "SELECT * FROM appointments ORDER BY created_at DESC";
     db.query(query, (err, results) => {
         if (err) return res.status(500).json({ message: "Database error" });
-        res.json(results);
+        
+        // Attach WhatsApp direct links to each appointment object
+        const enriched = results.map(apt => {
+            const clientMsg = whatsappService.buildClientMessage(apt.name, apt.status, apt.day, apt.slot, apt.admin_response);
+            return {
+                ...apt,
+                whatsapp_link: whatsappService.generateWhatsAppLink(apt.phone, clientMsg)
+            };
+        });
+        
+        res.json(enriched);
     });
 };
 
@@ -71,27 +92,35 @@ exports.updateStatus = (req, res) => {
         db.query(query, [status, admin_response || '', id], (err, result) => {
             if (err) return res.status(500).json({ message: "Failed to update status" });
 
-            // If updated by Admin (via API usually means Admin), notify Client
-            // BUT if status is 'cancelled' (usually means client cancelled), we normally notify admin?
-            // Assuming this API endpoint is for ADMIN dashboard use:
+            // Notify Client via Email
             emailService.sendStatusUpdateEmail(appointment.email, appointment.name, status, admin_response);
 
-            res.json({ message: `Appointment ${status} successfully` });
+            // Generate WhatsApp response message and direct link
+            const waMsg = whatsappService.buildClientMessage(appointment.name, status, appointment.day, appointment.slot, admin_response);
+            const waLink = whatsappService.generateWhatsAppLink(appointment.phone, waMsg);
+
+            // Attempt automated Twilio WhatsApp if configured
+            whatsappService.sendAutomatedWhatsApp(appointment.phone, waMsg);
+
+            res.json({
+                message: `Appointment ${status} successfully`,
+                whatsapp_link: waLink
+            });
         });
     });
 };
 
-// Handle Email Action (GET request from Admin Email OR Client Email)
+// Handle Email & WhatsApp Action (GET request from Pastor Email OR WhatsApp link)
 exports.handleEmailAction = (req, res) => {
     const { id, status } = req.query;
 
     if (!id || !status || !['approved', 'rejected', 'reschedule', 'cancelled'].includes(status)) {
-        return res.status(400).send("Invalid Request");
+        return res.status(400).send("Invalid Request Parameters");
     }
 
     const getQuery = "SELECT * FROM appointments WHERE id = ?";
     db.query(getQuery, [id], (err, results) => {
-        if (err || results.length === 0) return res.status(404).send("Appointment not found");
+        if (err || results.length === 0) return res.status(404).send("Appointment request not found");
 
         const appointment = results[0];
 
@@ -101,30 +130,63 @@ exports.handleEmailAction = (req, res) => {
             if (err) return res.status(500).send("Database Error");
 
             if (status === 'cancelled') {
-                // Action came from CLIENT -> Notify ADMIN
                 emailService.sendAdminNotification({
                     ...appointment,
                     status: 'cancelled',
-                    isCancellation: true // Flag to distinguish email type
+                    isCancellation: true
                 });
             } else {
-                // Action came from ADMIN -> Notify CLIENT
-                emailService.sendStatusUpdateEmail(appointment.email, appointment.name, status, "Updated via Email Action");
+                emailService.sendStatusUpdateEmail(appointment.email, appointment.name, status, "Updated via Pastor Action Link");
             }
 
-            // Return simple HTML success page
+            // Generate client WhatsApp link
+            const clientMsg = whatsappService.buildClientMessage(appointment.name, status, appointment.day, appointment.slot);
+            const clientWaLink = whatsappService.generateWhatsAppLink(appointment.phone, clientMsg);
+
+            const statusColor = status === 'approved' ? '#16A34A' : status === 'rejected' ? '#DC2626' : status === 'cancelled' ? '#64748B' : '#D97706';
+
+            // Return clean HTML success page
             res.send(`
+                <!DOCTYPE html>
                 <html>
-                    <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-                        <h1 style="color: ${status === 'approved' ? 'green' : status === 'rejected' ? 'red' : status === 'cancelled' ? 'gray' : 'orange'};">
-                            ${status === 'cancelled' ? 'Appointment Cancelled' : 'Action Successful!'}
-                        </h1>
-                        <p>
-                            ${status === 'cancelled'
-                    ? `Your appointment request has been cancelled.`
-                    : `Appointment for <strong>${appointment.name}</strong> has been marked as <strong>${status.toUpperCase()}</strong>.`}
-                        </p>
-                        ${status !== 'cancelled' ? '<p>The client has been notified via email.</p>' : '<p>The administration has been notified.</p>'}
+                    <head>
+                        <title>Appointment Action - Power Of Praise A.G Church</title>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                        <style>
+                            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #F8FAFC; color: #0F172A; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+                            .card { background: white; max-width: 500px; width: 100%; padding: 32px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); border: 1px solid #E2E8F0; text-align: center; }
+                            .badge { inline-block; padding: 6px 16px; border-radius: 9999px; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; background: ${statusColor}15; color: ${statusColor}; border: 1px solid ${statusColor}40; margin-bottom: 16px; }
+                            h1 { color: #0B1B3D; margin: 0 0 12px 0; font-size: 24px; }
+                            p { color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0; }
+                            .details { background: #F1F5F9; border-radius: 12px; padding: 16px; text-align: left; font-size: 14px; margin-bottom: 24px; border: 1px solid #E2E8F0; }
+                            .details p { margin: 4px 0; color: #334155; }
+                            .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: 14px; text-decoration: none; transition: all 0.2s; box-sizing: border-box; margin-bottom: 10px; }
+                            .btn-whatsapp { background: #16A34A; color: white; }
+                            .btn-whatsapp:hover { background: #15803D; }
+                            .btn-dashboard { background: #0F172A; color: white; }
+                            .btn-dashboard:hover { background: #1E293B; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="card">
+                            <div class="badge">${status === 'cancelled' ? 'CANCELLED' : status.toUpperCase()}</div>
+                            <h1>Appointment ${status === 'cancelled' ? 'Cancelled' : 'Updated Successfully'}</h1>
+                            <p>Pastor action confirmed. The status for <strong>${appointment.name}</strong> has been updated to <strong>${status.toUpperCase()}</strong>.</p>
+                            
+                            <div class="details">
+                                <p><strong>Client:</strong> ${appointment.name}</p>
+                                <p><strong>Phone:</strong> ${appointment.phone}</p>
+                                <p><strong>Requested Time:</strong> ${appointment.day} at ${appointment.slot}</p>
+                                <p><strong>Topic:</strong> ${appointment.topic}</p>
+                            </div>
+
+                            <a href="${clientWaLink}" target="_blank" class="btn btn-whatsapp">
+                                💬 Notify Client via WhatsApp
+                            </a>
+                            <a href="http://localhost:5173/admin/dashboard" class="btn btn-dashboard">
+                                ← Return to Admin Dashboard
+                            </a>
+                        </div>
                     </body>
                 </html>
             `);

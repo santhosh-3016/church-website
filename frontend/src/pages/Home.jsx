@@ -1,6 +1,6 @@
-
 import Layout from "@/components/layout/Layout";
 import HeroSection from "@/components/home/HeroSection";
+import LiveStreamBanner from "@/components/home/LiveStreamBanner";
 import ConnectCards from "@/components/home/ConnectCards";
 import FeaturedMedia from "@/components/home/FeaturedMedia";
 import AlternatingSection from "@/components/home/AlternatingSection";
@@ -9,6 +9,7 @@ import ServiceTimesSection from "@/components/home/ServiceTimesSection";
 const Home = () => {
   return (
     <Layout>
+      <LiveStreamBanner />
       <HeroSection />
 
       <ConnectCards />

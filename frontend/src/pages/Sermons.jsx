@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import PageHero from "@/components/PageHero";
+import LiveStreamBanner from "@/components/home/LiveStreamBanner";
 import SermonCard from "@/components/sermons/SermonCard";
 import { Search, Sparkles } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
@@ -25,6 +25,7 @@ const Sermons = () => {
 
   return (
     <Layout>
+      <LiveStreamBanner />
       <PageHero
         badge="Messages from the Pulpit"
         badgeIcon={Sparkles}

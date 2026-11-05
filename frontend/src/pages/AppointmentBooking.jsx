@@ -12,7 +12,7 @@ const AppointmentBooking = () => {
     const [formData, setFormData] = useState({
         name: '', phone: '', email: '', topic: '', message: '', day: '', slot: ''
     });
-    const [status, setStatus] = useState({ type: '', message: '' });
+    const [status, setStatus] = useState({ type: '', message: '', whatsappLink: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Status Check State
@@ -60,24 +60,35 @@ const AppointmentBooking = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
-        setStatus({ type: '', message: '' });
+        setStatus({ type: '', message: '', whatsappLink: '' });
+
+        // Auto-correct common email typos (e.g. gamil.com -> gmail.com)
+        const cleanedEmail = formData.email
+            ? formData.email.trim().replace(/@gamil\.com$/i, '@gmail.com').replace(/@gmai\.com$/i, '@gmail.com').replace(/@gmial\.com$/i, '@gmail.com')
+            : '';
+
+        const payload = { ...formData, email: cleanedEmail };
 
         try {
             const res = await fetch('/api/appointments', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
             const data = await res.json();
 
             if (!res.ok) {
-                setStatus({ type: 'error', message: data.message || 'Booking failed' });
+                setStatus({ type: 'error', message: data.message || 'Booking failed', whatsappLink: '' });
             } else {
-                setStatus({ type: 'success', message: 'Appointment request submitted! Check your email for confirmation.' });
+                setStatus({
+                    type: 'success',
+                    message: 'Appointment request submitted successfully! An email confirmation has been sent.',
+                    whatsappLink: data.whatsapp_admin_link || ''
+                });
                 setFormData({ name: '', phone: '', email: '', topic: '', message: '', day: '', slot: '' });
             }
         } catch (err) {
-            setStatus({ type: 'error', message: 'Server connection failed. Try again later.' });
+            setStatus({ type: 'error', message: 'Server connection failed. Try again later.', whatsappLink: '' });
         } finally {
             setIsSubmitting(false);
         }
@@ -205,9 +216,22 @@ const AppointmentBooking = () => {
                                 </div>
 
                                 {status.message && (
-                                    <div className={`p-4 rounded-lg flex items-center gap-3 ${status.type === 'error' ? 'bg-destructive/10 text-destructive border border-destructive/20' : 'bg-green-50 text-green-700 border border-green-200'}`}>
-                                        {status.type === 'error' ? <AlertCircle className="w-5 h-5 shrink-0" /> : <Check className="w-5 h-5 shrink-0" />}
-                                        <p>{status.message}</p>
+                                    <div className="space-y-3">
+                                        <div className={`p-4 rounded-xl flex items-center gap-3 ${status.type === 'error' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'}`}>
+                                            {status.type === 'error' ? <AlertCircle className="w-5 h-5 shrink-0" /> : <Check className="w-5 h-5 shrink-0" />}
+                                            <p className="text-sm font-medium">{status.message}</p>
+                                        </div>
+
+                                        {status.type === 'success' && status.whatsappLink && (
+                                            <a
+                                                href={status.whatsappLink}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm transition-all shadow-md"
+                                            >
+                                                💬 Send Request via WhatsApp to Church (+91 9025937253)
+                                            </a>
+                                        )}
                                     </div>
                                 )}
 

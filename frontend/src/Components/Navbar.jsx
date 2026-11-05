@@ -34,10 +34,30 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
 
+  const [isLive, setIsLive] = useState(false);
+
   const isActive = (path) => location.pathname === path;
 
   const handleScroll = useCallback(() => {
     setScrolled(window.scrollY > 20);
+  }, []);
+
+  const checkLiveStatus = async () => {
+    try {
+      const res = await fetch("/api/livestream");
+      const data = await res.json();
+      if (data.success) {
+        setIsLive(Boolean(data.is_live));
+      }
+    } catch (e) {
+      // silent catch
+    }
+  };
+
+  useEffect(() => {
+    checkLiveStatus();
+    const interval = setInterval(checkLiveStatus, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -56,6 +76,7 @@ const Navbar = () => {
   useEffect(() => {
     setIsOpen(false);
   }, [location.pathname]);
+
 
   return (
     <header
@@ -125,16 +146,39 @@ const Navbar = () => {
             {/* Quick Live Stream / Admin Buttons */}
             <div className="flex items-center gap-2 ml-3 pl-3 border-l border-slate-200">
               <Button
-                variant="outline"
+                variant={isLive ? "default" : "outline"}
                 size="sm"
                 asChild
-                className="rounded-full border-sky-600 text-sky-700 hover:bg-sky-50 text-xs font-bold px-4"
+                className={`rounded-full text-xs font-bold px-4 transition-all ${
+                  isLive
+                    ? "bg-rose-600 hover:bg-rose-700 text-white shadow-md animate-pulse border-none"
+                    : "border-sky-600 text-sky-700 hover:bg-sky-50"
+                }`}
               >
-                <Link to="/sermons" className="flex items-center gap-1.5">
-                  <Video className="w-3.5 h-3.5 text-sky-600" />
-                  LIVE STREAM
-                </Link>
+                {isLive ? (
+                  <a
+                    href="#live-stream-section"
+                    onClick={(e) => {
+                      const elem = document.getElementById("live-stream-section");
+                      if (elem) {
+                        e.preventDefault();
+                        elem.scrollIntoView({ behavior: "smooth" });
+                      }
+                    }}
+                    className="flex items-center gap-1.5"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                    🔴 LIVE NOW
+                  </a>
+                ) : (
+                  <Link to="/sermons" className="flex items-center gap-1.5">
+                    <Video className="w-3.5 h-3.5 text-sky-600" />
+                    LIVE STREAM
+                  </Link>
+                )}
               </Button>
+
+
 
               <Button
                 size="sm"
